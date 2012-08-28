@@ -16,7 +16,7 @@ prefix geo: <http://www.opengis.net/ont/geosparql#>
 ''' + query)
 
 	sparql.setReturnFormat(JSON)
-	return sparql.query().convert()
+	return sparql.query().convert()['results']['bindings']
 
 def query_country_geometry(query_pcode):
 	countries = do_sparql_query('''
@@ -30,7 +30,7 @@ def query_country_geometry(query_pcode):
 	
 	wkts = []
 	
-	for country in countries['results']['bindings']:
+	for country in countries:
 		featureName = country['featureName']['value']
 		data = country['data']['value']
 		(poly_type, coords) = hxl.wkt.parse_wkt(data)
@@ -51,7 +51,7 @@ def query_country_apls(query_pcode):
 
 	wkts = []
 	
-	for apl in apls['results']['bindings']:
+	for apl in apls:
 		pcode = apl['pcode']['value']
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
@@ -72,7 +72,7 @@ def query_all_apls():
 
 	wkts = []
 	
-	for apl in apls['results']['bindings']:
+	for apl in apls:
 		pcode = apl['pcode']['value']
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
@@ -90,7 +90,7 @@ def query_country_pcodes():
 	''')
 
 	pcodes = []
-	for pcode_result in pcode_results['results']['bindings']:
+	for pcode_result in pcode_results:
 		pcode = pcode_result['pcode']['value']
 		pcodes.append(pcode)
 
@@ -108,7 +108,7 @@ def query_country_admin_levels(pcode):
 
 	admin_levels = set()
 
-	for admin_level_result in admin_level_results['results']['bindings']:
+	for admin_level_result in admin_level_results:
 		#admin levels appear to be stored as URIs, we need to parse out the
 		#integer value from the URI
 		admin_level_type = admin_level_result['level']['type']
@@ -142,7 +142,7 @@ def query_country_admin_level_geometry(query_pcode, query_level):
 	''' % (query_pcode, query_level_uri))
 
 	admin_level_wkts = []
-	for admin_level_result in admin_level_results['results']['bindings']:
+	for admin_level_result in admin_level_results:
 		featureName = admin_level_result['featureName']['value']
 		data = admin_level_result['data']['value']
 		(poly_type, coords) = hxl.wkt.parse_wkt(data)
