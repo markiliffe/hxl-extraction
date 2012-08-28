@@ -77,7 +77,7 @@ def query_all_apls():
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
 		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((poly_type, featureName, coords))
+		wkts.append((featureName, poly_type, coords))
 
 	return wkts
 
