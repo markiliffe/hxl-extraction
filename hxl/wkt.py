@@ -9,7 +9,7 @@ def extract(data, start, end):
 	if not data.endswith(end):
 		raise HXLException('Malformed WKT: Couldn\'t find %s' % (repr(end),))
 
-	return data[len(start):-(len(end) + 1)]
+	return data[len(start):-len(end)]
 
 def parse_coords(data):
 	coords = data.split(',')
