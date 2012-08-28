@@ -46,7 +46,10 @@ def add_points(doc, geom, wkts):
 	multiPoint.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
 
 	for (name, poly_type, coords) in wkts:
+		#It's the caller's responsibility to check that all the points given
+		#are actually points
 		assert poly_type == 'POINT'
+
 		coordinates = create_coordinates(doc, coords)
 
 		point = doc.createElement('gml:Point')
@@ -59,6 +62,8 @@ def add_points(doc, geom, wkts):
 	geom.appendChild(multiPoint)
 
 def create_gml_header(layer_name):
+	'''Create a generic WFS transaction to insert geometry into a layer.'''
+
 	doc = minidom.Document()
 
 	escaped_layer_name = cgi.escape(layer_name)
@@ -71,6 +76,8 @@ def create_gml_header(layer_name):
 	wfs.setAttribute('xmlns:gml', 'http://www.opengis.net/gml')
 	wfs.setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
 
+	#FIXME: I think(?) we need to pass the URL of the 'topp' schema which is on the geoserver we
+	#are connecting to
 	wfs.setAttribute('xmlns:schemaLocation', 'http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.0.0/WFS-transaction.xsd http://www.openplans.org/topp http://localhost:8080/geoserver/wfs/DescribeFeatureType?typename=topp:%s' % (escaped_layer_name,))
 
 	country = doc.createElement('topp:%s' % (escaped_layer_name,))
@@ -87,8 +94,12 @@ def create_gml_header(layer_name):
 	return (doc, geom)
 
 def insert_polygon_gml(layer_name, wkt):
+	'''Create a WFS transaction to insert a polygon into a layer'''
+
 	(doc, geom) = create_gml_header(layer_name)
 			
+	#FIXME: hxl.sparql.query_country_geometry returns a list of features, it should
+	#probably just return a single feature?
 	assert len(wkt) == 1
 	[(name, poly_type, wkt_data)] = wkt
 	if poly_type == 'MULTIPOLYGON':
@@ -99,8 +110,11 @@ def insert_polygon_gml(layer_name, wkt):
 	return doc
 
 def insert_multi_point_gml(layer_name, wkts):
+	'''Create a WFS transaction to insert points into a layer'''
+
 	(doc, geom) = create_gml_header(layer_name)
 	add_points(doc, geom, wkts)
 
 	return doc
 
+__all__ = ['insert_polygon_gml', 'insert_multi_point_gml']

@@ -6,6 +6,8 @@ class GeoServer(object):
 	def __init__(self, server, port, username, password):
 		self.server = server
 		self.port = port
+
+		#FIXME: Credentials are sent in plain text :( Use HTTPS?
 		self.auth = 'Basic ' + base64.encodestring('%s:%s' % (username, password)).strip()
 
 	def make_request(self, need_auth, url, body=None):
@@ -22,6 +24,7 @@ class GeoServer(object):
 		conn.request(method, url, body, headers)
 		return conn.getresponse()
 
-	def wfs(self, gml):
-		return self.make_request(False, '/geoserver/wfs', gml.toxml())
+	def wfs(self, operation):
+		'''Submit the given WFS operation to the server'''
+		return self.make_request(False, '/geoserver/wfs', operation.toxml())
 

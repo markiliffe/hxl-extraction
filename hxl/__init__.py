@@ -1,0 +1,2 @@
+class HXLException(Exception):
+	pass

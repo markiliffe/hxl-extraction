@@ -30,8 +30,8 @@ def main():
 	for pcode in pcodes:
 		print 'Importing %s...' % (pcode,),
 		wkts = hxl.sparql.query_country_geometry(pcode)
-		gml = hxl.gml.insert_polygon_gml(pcode, wkts)
-		response = server.wfs(gml)
+		operation = hxl.gml.insert_polygon_gml(pcode, wkts)
+		response = server.wfs(operation)
 		print
 		print response.read()
 
