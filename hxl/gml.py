@@ -18,7 +18,6 @@ def add_multipolygon(doc, geom, name, polygons):
 	multiPolygon.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
 
 	for coords in polygons:
-		coords[-1] = coords[0]
 		coordinates = create_coordinates(doc, coords)
 	
 		linearRing = doc.createElement('gml:LinearRing')
