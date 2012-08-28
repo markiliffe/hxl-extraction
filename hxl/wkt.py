@@ -1,6 +1,10 @@
 from hxl import HXLException
 
 #Geometry in HXL is stored as 'Well-Known Text' strings in the hasSerialization property. 
+#WKT data looks like:
+#	POLYGON ((1 2, 3 4))
+#	POINT (12.34 32.12)
+#	MULTIPOLYGON (((1 2, 3 4), (3 4, 5 6)))
 
 def extract(data, start, end):
 	if not data.startswith(start):

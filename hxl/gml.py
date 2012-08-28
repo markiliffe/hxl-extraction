@@ -2,6 +2,7 @@ import cgi
 from xml.dom import minidom
 
 def create_coordinates(doc, coords):
+	'''Convert list of (long,lat) pairs into one space separated string'''
 	coordinates = doc.createElement('gml:coordinates')
 
 	coords_string_array = []
