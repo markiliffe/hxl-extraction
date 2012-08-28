@@ -17,3 +17,12 @@ Usage:
 e.g.:
 
     python ./geomimport.py -s localhost -p 8080 PAK BFA
+
+aplimport.py
+============
+
+Import geometry data for all APLs from a hxl store into a GeoServer instance. All APLs are added to the layer 'APLs'.
+
+Usage:
+
+    python ./aplimport.py -s <geoserver_hostname> -p <geoserver_port>
