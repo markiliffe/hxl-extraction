@@ -60,7 +60,7 @@ def query_country_apls(query_pcode):
 
 	return wkts
 
-def query_all_apls(query_pcode):
+def query_all_apls():
 	apls = do_sparql_query('''
 	SELECT DISTINCT ?pcode ?featureName ?data WHERE {
 	  ?p rdf:type hxl:APL ;
@@ -68,7 +68,7 @@ def query_all_apls(query_pcode):
 		hxl:featureName ?featureName ;
 	        geo:hasGeometry/geo:hasSerialization ?data .
 	}       
-	''' % (query_pcode,))
+	''')
 
 	wkts = []
 	
