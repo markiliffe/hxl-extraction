@@ -1,3 +1,4 @@
+import re
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 import hxl.wkt
@@ -33,7 +34,7 @@ def query_country_geometry(query_pcode):
 		featureName = country['featureName']['value']
 		data = country['data']['value']
 		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((poly_type, coords))
+		wkts.append((featureName, poly_type, coords))
 
 	return wkts
 
@@ -55,10 +56,9 @@ def query_country_apls(query_pcode):
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
 		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((poly_type, coords))
+		wkts.append((featureName, poly_type, coords))
 
 	return wkts
-
 
 def query_all_apls(query_pcode):
 	apls = do_sparql_query('''
@@ -77,7 +77,75 @@ def query_all_apls(query_pcode):
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
 		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((poly_type, coords))
+		wkts.append((poly_type, featureName, coords))
 
 	return wkts
 
+def query_country_pcodes():
+	pcode_results = do_sparql_query('''
+	SELECT DISTINCT ?pcode WHERE {
+		?country rdf:type hxl:Country ;
+			hxl:pcode ?pcode .
+	}
+	''')
+
+	pcodes = []
+	for pcode_result in pcode_results['results']['bindings']:
+		pcode = pcode_result['pcode']['value']
+		pcodes.append(pcode)
+
+	return pcodes
+
+admin_level_re = re.compile('^.+/adminlevel([0-9]+)$')
+def query_country_admin_levels(pcode):
+	admin_level_results = do_sparql_query('''
+	SELECT DISTINCT ?level WHERE {
+		?c hxl:pcode "%s" .
+		?admin hxl:atLocation* ?c .
+		?admin hxl:atLevel ?level .
+	}
+	''' % (pcode,))
+
+	admin_levels = set()
+
+	for admin_level_result in admin_level_results['results']['bindings']:
+		#admin levels appear to be stored as URIs, we need to parse out the
+		#integer value from the URI
+		admin_level_type = admin_level_result['level']['type']
+		admin_level_value = admin_level_result['level']['value']
+
+		if admin_level_type == 'uri':
+			m = admin_level_re.match(admin_level_value)
+			if m:
+				(n,) = m.groups()
+				n = int(n)
+				admin_levels.add(n)
+				continue
+
+		raise Exception('Badly formed admin level %s' % (repr(admin_level_result['level']['value']),))
+
+	admin_levels = list(admin_levels)
+	admin_levels.sort()
+	return admin_levels
+
+def query_country_admin_level_geometry(query_pcode, query_level):
+	query_level_uri = \
+		'http://hxl.humanitarianresponse.info/data/locations/admin/%s/adminlevel%d' % (query_pcode.lower(), query_level)
+	admin_level_results = do_sparql_query('''
+	SELECT DISTINCT ?featureName ?data WHERE {
+	?c hxl:pcode "%s" ;
+		hxl:featureName ?featureName ;
+		geo:hasGeometry/geo:hasSerialization ?data .
+	?admin hxl:atLocation* ?c .
+	?admin hxl:atLevel <%s> .
+	}
+	''' % (query_pcode, query_level_uri))
+
+	admin_level_wkts = []
+	for admin_level_result in admin_level_results['results']['bindings']:
+		featureName = admin_level_result['featureName']['value']
+		data = admin_level_result['data']['value']
+		(poly_type, coords) = hxl.wkt.parse_wkt(data)
+		admin_level_wkts.append((featureName, poly_type, coords))
+	
+	return admin_level_wkts

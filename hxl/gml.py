@@ -45,7 +45,7 @@ def add_points(doc, geom, wkts):
 	multiPoint = doc.createElement('gml:MultiPoint')
 	multiPoint.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
 
-	for (poly_type, coords) in wkts:
+	for (name, poly_type, coords) in wkts:
 		assert poly_type == 'POINT'
 		coordinates = create_coordinates(doc, coords)
 
@@ -90,11 +90,11 @@ def insert_polygon_gml(layer_name, wkt):
 	(doc, geom) = create_gml_header(layer_name)
 			
 	assert len(wkt) == 1
-	[(poly_type, wkt_data)] = wkt
+	[(name, poly_type, wkt_data)] = wkt
 	if poly_type == 'MULTIPOLYGON':
-		add_multipolygon(doc, geom, layer_name, wkt_data)
+		add_multipolygon(doc, geom, name, wkt_data)
 	else:
-		add_multipolygon(doc, geom, layer_name, [wkt_data])
+		add_multipolygon(doc, geom, name, [wkt_data])
 
 	return doc
 
