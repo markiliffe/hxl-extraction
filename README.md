@@ -26,3 +26,17 @@ Import geometry data for all APLs from a hxl store into a GeoServer instance. Al
 Usage:
 
     python ./aplimport.py -s <geoserver_hostname> -p <geoserver_port>
+
+listpcodes.py
+=============
+
+List all country level pcodes.
+
+    python ./listpcodes.py [pcode, pcode, ...]
+
+listadmins.py
+=============
+
+List admin levels for the given pcodes.
+
+    python ./listadmins.py [pcode, pcode, ...]
