@@ -1,0 +1,2 @@
+The install_database.sh script is adapted from the Djangorifa repository from the Taarifa project. Found here: https://github.com/taarifa/djangorifa
+
