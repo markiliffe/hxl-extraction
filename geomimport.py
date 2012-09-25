@@ -29,11 +29,15 @@ def main():
 
 	for pcode in pcodes:
 		print 'Importing %s...' % (pcode,),
-		polygons = hxl.sparql.query_country_geometry(pcode)
-		operation = hxl.gml.insert_multi_polygon_gml(pcode, polygons)
-		response = server.wfs(operation)
-		print
-		print response.read()
+		country = hxl.sparql.query_country_geometry(pcode)
+		if country:
+			(name, polygons) = country
+			operation = hxl.gml.insert_multi_polygon_gml(pcode, name, polygons)
+			response = server.wfs(operation)
+			print
+			print response.read()
+		else:
+			print 'Unknown pcode %s' % (repr(pcode),)
 
 if __name__ == '__main__':
 	main()

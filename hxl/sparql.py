@@ -36,7 +36,13 @@ def query_country_geometry(query_pcode):
 		polygons = hxl.wkt.parse_wkt(data)
 		wkts.append((featureName, polygons))
 
-	return wkts
+	if len(wkts):
+		#We're limiting the number of results to one, we should only
+		#ever have one result
+		assert len(wkts) == 1
+		return wkts[0]
+	else:
+		return None
 
 def query_country_apls(query_pcode):
 	apls = do_sparql_query('''

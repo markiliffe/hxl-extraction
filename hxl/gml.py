@@ -91,15 +91,10 @@ def create_gml_header(layer_name):
 
 	return (doc, geom)
 
-def insert_multi_polygon_gml(layer_name, wkt):
+def insert_multi_polygon_gml(layer_name, name, polygons):
 	'''Create a WFS transaction to insert a polygon into a layer'''
 
 	(doc, geom) = create_gml_header(layer_name)
-			
-	#FIXME: hxl.sparql.query_country_geometry returns a list of features, it should
-	#probably just return a single feature?
-	assert len(wkt) == 1
-	[(name, polygons)] = wkt
 	add_multipolygon(doc, geom, name, polygons)
 
 	return doc
