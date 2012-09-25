@@ -23,8 +23,8 @@ def main():
 
 	server = hxl.geoserver.GeoServer(o.server, o.port, o.username, password)
 
-	wkts = hxl.sparql.query_all_apls()
-	operation = hxl.gml.insert_multi_point_gml('APLs', wkts)
+	points = hxl.sparql.query_all_apls()
+	operation = hxl.gml.insert_multi_point_gml('APLs', points)
 	response = server.wfs(operation)
 	print
 	print response.read()

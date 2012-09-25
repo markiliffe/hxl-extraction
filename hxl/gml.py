@@ -1,6 +1,8 @@
 import cgi
 from xml.dom import minidom
 
+import hxl.wkt
+
 def create_coordinates(doc, coords):
 	'''Convert list of (long,lat) pairs into one space separated string'''
 	coordinates = doc.createElement('gml:coordinates')
@@ -18,8 +20,8 @@ def add_multipolygon(doc, geom, name, polygons):
 	multiPolygon = doc.createElement('gml:MultiPolygon')
 	multiPolygon.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
 
-	for coords in polygons:
-		coordinates = create_coordinates(doc, coords)
+	for polygon in polygons:
+		coordinates = create_coordinates(doc, polygon.coords)
 	
 		linearRing = doc.createElement('gml:LinearRing')
 		linearRing.appendChild(coordinates)
@@ -37,20 +39,16 @@ def add_multipolygon(doc, geom, name, polygons):
 
 	geom.appendChild(multiPolygon)
 
-def add_polygon(doc, geom, name, coords):
-	add_multipolygon(doc, geom, name, [coords])
-
 def add_points(doc, geom, wkts):
-
 	multiPoint = doc.createElement('gml:MultiPoint')
 	multiPoint.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
 
-	for (name, poly_type, coords) in wkts:
+	for (name, point) in wkts:
 		#It's the caller's responsibility to check that all the points given
 		#are actually points
-		assert poly_type == 'POINT'
+		assert type(point) is hxl.wkt.Point
 
-		coordinates = create_coordinates(doc, coords)
+		coordinates = create_coordinates(doc, [point.coord])
 
 		point = doc.createElement('gml:Point')
 		point.appendChild(coordinates)
@@ -93,7 +91,7 @@ def create_gml_header(layer_name):
 
 	return (doc, geom)
 
-def insert_polygon_gml(layer_name, wkt):
+def insert_multi_polygon_gml(layer_name, wkt):
 	'''Create a WFS transaction to insert a polygon into a layer'''
 
 	(doc, geom) = create_gml_header(layer_name)
@@ -101,11 +99,8 @@ def insert_polygon_gml(layer_name, wkt):
 	#FIXME: hxl.sparql.query_country_geometry returns a list of features, it should
 	#probably just return a single feature?
 	assert len(wkt) == 1
-	[(name, poly_type, wkt_data)] = wkt
-	if poly_type == 'MULTIPOLYGON':
-		add_multipolygon(doc, geom, name, wkt_data)
-	else:
-		add_multipolygon(doc, geom, name, [wkt_data])
+	[(name, polygons)] = wkt
+	add_multipolygon(doc, geom, name, polygons)
 
 	return doc
 
@@ -117,4 +112,4 @@ def insert_multi_point_gml(layer_name, wkts):
 
 	return doc
 
-__all__ = ['insert_polygon_gml', 'insert_multi_point_gml']
+__all__ = ['insert_multi_polygon_gml', 'insert_multi_point_gml']

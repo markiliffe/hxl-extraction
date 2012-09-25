@@ -33,8 +33,8 @@ def query_country_geometry(query_pcode):
 	for country in countries:
 		featureName = country['featureName']['value']
 		data = country['data']['value']
-		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((featureName, poly_type, coords))
+		polygons = hxl.wkt.parse_wkt(data)
+		wkts.append((featureName, polygons))
 
 	return wkts
 
@@ -55,8 +55,8 @@ def query_country_apls(query_pcode):
 		pcode = apl['pcode']['value']
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
-		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((featureName, poly_type, coords))
+		polygons = hxl.wkt.parse_wkt(data)
+		wkts.append((featureName, polygons))
 
 	return wkts
 
@@ -76,8 +76,8 @@ def query_all_apls():
 		pcode = apl['pcode']['value']
 		featureName = apl['featureName']['value']
 		data = apl['data']['value']
-		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		wkts.append((featureName, poly_type, coords))
+		polygons = hxl.wkt.parse_wkt(data)
+		wkts.append((featureName, polygons))
 
 	return wkts
 
@@ -145,7 +145,7 @@ def query_country_admin_level_geometry(query_pcode, query_level):
 	for admin_level_result in admin_level_results:
 		featureName = admin_level_result['featureName']['value']
 		data = admin_level_result['data']['value']
-		(poly_type, coords) = hxl.wkt.parse_wkt(data)
-		admin_level_wkts.append((featureName, poly_type, coords))
+		polygons = hxl.wkt.parse_wkt(data)
+		admin_level_wkts.append((featureName, polygons))
 	
 	return admin_level_wkts

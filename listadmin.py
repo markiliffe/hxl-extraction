@@ -14,11 +14,11 @@ def main():
 		print '%s' % (pcode,)
 
 		for admin_level in admin_levels:
-			wkts = hxl.sparql.query_country_admin_level_geometry(pcode, admin_level)
+			polygons = hxl.sparql.query_country_admin_level_geometry(pcode, admin_level)
 
 			print '  Level %d:' % (admin_level,)
 
-			for (name, _, _) in wkts:
+			for (name, _) in polygons:
 				print '    %s' % (name,)
 
 
