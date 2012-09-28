@@ -2,6 +2,7 @@ import re
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 import hxl.wkt
+from hxl import APL
 
 def do_sparql_query(query):
 	sparql = SPARQLWrapper('http://hxl.humanitarianresponse.info/sparql')
@@ -45,7 +46,7 @@ def query_country_geometry(query_pcode):
 		return None
 
 def query_country_apls(query_pcode):
-	apls = do_sparql_query('''
+	apl_results = do_sparql_query('''
 	SELECT DISTINCT ?pcode ?featureName ?data WHERE {
 	  ?p rdf:type hxl:APL ;
 		hxl:pcode ?pcode ;
@@ -55,16 +56,17 @@ def query_country_apls(query_pcode):
 	}       
 	''' % (query_pcode,))
 
-	wkts = []
+	apls = []
 	
-	for apl in apls:
-		pcode = apl['pcode']['value']
-		featureName = apl['featureName']['value']
-		data = apl['data']['value']
-		polygons = hxl.wkt.parse_wkt(data)
-		wkts.append((featureName, polygons))
+	for apl_result in apl_results:
+		pcode = apl_result['pcode']['value']
+		featureName = apl_result['featureName']['value']
+		data = apl_result['data']['value']
 
-	return wkts
+		polygons = hxl.wkt.parse_wkt(data)
+		apls.append(APL(pcode, featureName, polygons))
+
+	return apls
 
 def query_all_apls():
 	apls = do_sparql_query('''
@@ -76,16 +78,17 @@ def query_all_apls():
 	}       
 	''')
 
-	wkts = []
+	apls = []
 	
-	for apl in apls:
-		pcode = apl['pcode']['value']
-		featureName = apl['featureName']['value']
-		data = apl['data']['value']
-		polygons = hxl.wkt.parse_wkt(data)
-		wkts.append((featureName, polygons))
+	for apl_result in apl_results:
+		pcode = apl_result['pcode']['value']
+		featureName = apl_result['featureName']['value']
+		data = apl_result['data']['value']
 
-	return wkts
+		polygons = hxl.wkt.parse_wkt(data)
+		apls.append(APL(pcode, featureName, polygons))
+
+	return apls
 
 def query_country_pcodes():
 	pcode_results = do_sparql_query('''
