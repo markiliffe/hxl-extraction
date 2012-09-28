@@ -19,6 +19,30 @@ prefix geo: <http://www.opengis.net/ont/geosparql#>
 	sparql.setReturnFormat(JSON)
 	return sparql.query().convert()['results']['bindings']
 
+def query_country_information(query_pcode):
+	country_results = do_sparql_query('''
+	SELECT ?featureName WHERE {
+	  ?country hxl:pcode "%s" ;
+		hxl:featureName ?featureName .
+	}
+	LIMIT 1
+	''' % (query_pcode,))
+
+	countries = []
+
+	for country_result in country_results:
+		featureName = country_result['featureName']['value']
+		countries.append((featureName,))
+
+	if len(countries):
+		#We're limiting the number of results to one, we should only
+		#ever have one result
+		assert len(countries) == 1
+		return countries[0]
+	else:
+		return None
+
+
 def query_country_geometry(query_pcode):
 	countries = do_sparql_query('''
 	SELECT DISTINCT ?featureName ?data WHERE {
