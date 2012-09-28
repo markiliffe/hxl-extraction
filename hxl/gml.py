@@ -1,110 +1,173 @@
+import base64
 import cgi
-from xml.dom import minidom
+import httplib
+import json
+import lxml.etree as et
 
+from hxl import HXLException
 import hxl.wkt
 
-def create_coordinates(doc, coords):
-	'''Convert list of (long,lat) pairs into one space separated string'''
-	coordinates = doc.createElement('gml:coordinates')
+gml_namespace = 'http://www.opengis.net/gml'
+topp_namespace = 'http://www.openplans.org/topp'
+wfs_namespace = 'http://www.opengis.net/wfs'
 
+NSMAP = {
+	'gml':gml_namespace,
+	'topp':topp_namespace,
+	'wfs':wfs_namespace
+}
+
+def gmlElement(tag):
+	return et.Element('{%s}%s' % (gml_namespace, tag))
+
+def gmlSubElement(parent, tag):
+	return et.SubElement(parent, '{%s}%s' % (gml_namespace, tag))
+
+def toppElement(tag):
+	return et.Element('{%s}%s' % (topp_namespace, tag))
+
+def toppSubElement(parent, tag):
+	return et.SubElement(parent, '{%s}%s' % (topp_namespace, tag))
+
+def wfsElement(tag, **kwargs):
+	return et.Element('{%s}%s' % (wfs_namespace, tag), **kwargs)
+
+def wfsSubElement(parent, tag):
+	return et.SubElement(parent, '{%s}%s' % (wfs_namespace, tag))
+
+def create_coordinates(coords):
+	'''Convert list of (long,lat) pairs into one space separated string'''
 	coords_string_array = []
 	for (x, y) in coords:
 		coords_string_array.append('%s,%s' % (x, y))
 
 	coords_string = ' '.join(coords_string_array)
-	coordinates.appendChild(doc.createTextNode(coords_string))
+
+	coordinates = gmlElement('coordinates')
+	coordinates.text = coords_string
 
 	return coordinates
 
-def add_multipolygon(doc, geom, name, polygons):
-	multiPolygon = doc.createElement('gml:MultiPolygon')
-	multiPolygon.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
+def gml_multipolygon(polygons):
+	multiPolygon = gmlElement('MultiPolygon')
+	multiPolygon.attrib['srsName'] = 'http://www.opengis.net/gml/srs/epsg.xml#4326'
 
-	for polygon in polygons:
-		coordinates = create_coordinates(doc, polygon.coords)
-	
-		linearRing = doc.createElement('gml:LinearRing')
-		linearRing.appendChild(coordinates)
-	
-		outerBoundaryIs = doc.createElement('gml:outerBoundaryIs')
-		outerBoundaryIs.appendChild(linearRing)
-	
-		polygon = doc.createElement('gml:Polygon')
-		polygon.appendChild(outerBoundaryIs)
-	
-		polygonMember = doc.createElement('gml:polygonMember')
-		polygonMember.appendChild(polygon)
+	for polygon_geometry in polygons:
+		polygonMember = gmlSubElement(multiPolygon, 'polygonMember')
+		polygon = gmlSubElement(polygonMember, 'Polygon')
+		outerBoundaryIs = gmlSubElement(polygon, 'outerBoundaryIs')
 
-		multiPolygon.appendChild(polygonMember)
+		linearRing = gmlSubElement(outerBoundaryIs, 'LinearRing')
+		linearRing.append(create_coordinates(polygon_geometry.coords))
 
-	geom.appendChild(multiPolygon)
+	return multiPolygon
+		
+def gml_multipoint(points):
+	multiPoint = gmlElement('MultiPoint')
+	multiPoint.attrib['srsName'] = 'http://www.opengis.net/gml/srs/epsg.xml#4326'
 
-def add_points(doc, geom, wkts):
-	multiPoint = doc.createElement('gml:MultiPoint')
-	multiPoint.setAttribute('srsName', 'http://www.opengis.net/gml/srs/epsg.xml#4326')
-
-	for (name, point) in wkts:
+	for point_geom in points:
 		#It's the caller's responsibility to check that all the points given
 		#are actually points
-		assert type(point) is hxl.wkt.Point
+		assert type(point_geom) is hxl.wkt.Point
 
-		coordinates = create_coordinates(doc, [point.coord])
+		pointMember = gmlSubElement(multiPoint, 'pointMember')
+		point = gmlSubElement(pointMember, 'Point')
+		point.append(create_coordinates([point_geom.coord]))
 
-		point = doc.createElement('gml:Point')
-		point.appendChild(coordinates)
+	return multiPoint
 
-		pointMember = doc.createElement('gml:pointMember')
-		pointMember.appendChild(point)
-		multiPoint.appendChild(pointMember)
+def wfs_insert(layer_name, geometry, pcode=None, featureName=None):
+	insert = wfsElement('Insert')
+	layer = toppSubElement(insert, layer_name)
 
-	geom.appendChild(multiPoint)
+	the_geom = toppSubElement(layer, 'the_geom')
+	the_geom.append(geometry)
 
-def create_gml_header(layer_name):
-	'''Create a generic WFS transaction to insert geometry into a layer.'''
+	featureName_node = toppSubElement(layer, 'featureName')
+	featureName_node.text = featureName
 
-	doc = minidom.Document()
+	pcode_node = toppSubElement(layer, 'pcode')
+	pcode_node.text = pcode
 
-	escaped_layer_name = cgi.escape(layer_name)
+	return insert
 
-	wfs = doc.createElement('wfs:Transaction')
-	wfs.setAttribute('service', 'WFS')
-	wfs.setAttribute('version', '1.0.0')
-	wfs.setAttribute('xmlns:wfs', 'http://www.opengis.net/wfs')
-	wfs.setAttribute('xmlns:topp', 'http://www.openplans.org/topp')
-	wfs.setAttribute('xmlns:gml', 'http://www.opengis.net/gml')
-	wfs.setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
+def wfs_transaction(operations):
+	transaction = wfsElement('Transaction', nsmap=NSMAP)
+	transaction.attrib['service'] = 'WFS'
+	transaction.attrib['version'] = '1.0.0'
 
-	#FIXME: I think(?) we need to pass the URL of the 'topp' schema which is on the geoserver we
-	#are connecting to
-	wfs.setAttribute('xmlns:schemaLocation', 'http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.0.0/WFS-transaction.xsd http://www.openplans.org/topp http://localhost:8080/geoserver/wfs/DescribeFeatureType?typename=topp:%s' % (escaped_layer_name,))
+	for operation in operations:
+		transaction.append(operation)
 
-	country = doc.createElement('topp:%s' % (escaped_layer_name,))
+	return transaction
 
-	geom = doc.createElement('topp:the_geom')
-	country.appendChild(geom)
+def wfs_insert_multipolygon(layer_name, name, polygons):
+	operations = [wfs_insert(layer_name, gml_multipolygon(polygons))]
+	return wfs_transaction(operations)
 
-	insert = doc.createElement('wfs:Insert')
-	insert.appendChild(country)
+def wfs_insert_multipoint(layer_name, features):
+	operations = [wfs_insert(layer_name, gml_multipoint([apl.point]), apl.pcode, apl.featureName) for apl in features]
+	return wfs_transaction(operations)
 
-	wfs.appendChild(insert)
-	doc.appendChild(wfs)
+class WFS(object):
+	def __init__(self, server, port, path, username, password):
+		self.server = server
+		self.port = port
+		self.path = path
 
-	return (doc, geom)
+		#FIXME: Credentials are sent in plain text :( Use HTTPS?
+		self.auth = 'Basic ' + base64.encodestring('%s:%s' % (username, password)).strip()
 
-def insert_multi_polygon_gml(layer_name, name, polygons):
-	'''Create a WFS transaction to insert a polygon into a layer'''
+	def make_request(self, need_auth, method, url, body=None):
+		conn = httplib.HTTPConnection(self.server, self.port)
+		headers = {
+			'Accept':'application/xml,text/plain'
+		}
 
-	(doc, geom) = create_gml_header(layer_name)
-	add_multipolygon(doc, geom, name, polygons)
+		if body is None:
+			pass
+		elif type(body) is dict:
+			headers['Content-type'] = 'application/json'
+			body = json.dumps(body)
 
-	return doc
+		elif type(body) is et._Element:
+			headers['Content-type'] = 'application/xml'
+			body = et.tostring(body)
 
-def insert_multi_point_gml(layer_name, wkts):
-	'''Create a WFS transaction to insert points into a layer'''
+		elif type(body) is str:
+			headers['Content-type'] = 'text/plain'
+		
+		else:
+			raise HXLException('Can\'t send %s' % type(body).__name__)
 
-	(doc, geom) = create_gml_header(layer_name)
-	add_points(doc, geom, wkts)
+		if need_auth:
+			headers['Authorization'] = self.auth
 
-	return doc
+		print (self.path + '/' + url, body, headers)
+		conn.request(method, self.path + '/' + url, body, headers)
+		return conn.getresponse()
 
-__all__ = ['insert_multi_polygon_gml', 'insert_multi_point_gml']
+	def make_wfs_request(self, body=None):
+		return self.make_request(True, 'POST', 'wfs', body)
+
+	def describe_feature_type(self):
+		assert False and 'implement me'
+
+	def get_feature(self):
+		assert False and 'implement me'
+
+	def get_gml_object(self):
+		assert False and 'implement me'
+
+	def lock_feature(self):
+		assert False and 'implement me'
+
+	def insert_multipolygon(self, layer_name, name, polygons):
+		operation = wfs_insert_multipolygon(layer_name, name, polygons)
+		return self.make_wfs_request(operation)
+
+	def insert_multipoint(self, layer_name, features):
+		operation = wfs_insert_multipoint(layer_name, features)
+		return self.make_wfs_request(operation)
+
