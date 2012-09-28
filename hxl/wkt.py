@@ -1,3 +1,4 @@
+import StringIO
 from hxl import HXLException
 
 #Geometry in HXL is stored as 'Well-Known Text' strings in the hasSerialization property. 
@@ -13,6 +14,69 @@ class Polygon(object):
 class Point(object):
 	def __init__(self, coord):
 		self.coord = coord
+
+def update_bounding_box(minx, miny, maxx, maxy, x, y):
+	def min_(minn, n):
+		if minn == None:
+			return n
+		else:
+			return min(minn, n)
+
+	def max_(maxn, n):
+		if maxn == None:
+			return n
+		else:
+			return max(maxn, n)
+
+	return (
+		min_(minx, x),
+		min_(miny, y),
+
+		max_(maxx, x),
+		max_(maxy, y),
+	)
+
+def bounding_box(polygons):
+	if not len(polygons):
+		raise HXLException('len(polygons) == 0')
+
+	minx, miny, maxx, maxy = None, None, None, None
+
+	for polygon in polygons:
+		if type(polygon) is Polygon:
+			for (x, y) in polygon.coords:
+				minx, miny, maxx, maxy = update_bounding_box(minx, miny, maxx, maxy, x, y)
+
+		elif type(polygon) is Point:
+			(x, y) = polygon.coord
+			minx, miny, maxx, maxy = update_bounding_box(minx, miny, maxx, maxy, x, y)
+
+		else:
+			raise HXLException('Unknown polygon %s' % type(polygon).__name__)
+
+	return minx, miny, maxx, maxy
+
+def encode_polygons(polygons):
+	f = StringIO.StringIO()
+	f.write('MULTIPOLYGON (')
+
+	for (pindex, polygon) in enumerate(polygons):
+		if type(polygon) is not Polygon:
+			raise HXLException('Wanted Polygon, got %s' % (type(polygon),))
+
+		f.write('((')
+		f.write(','.join('%f %f' % coord for coord in polygon.coords))
+		f.write('))')
+
+		if pindex != len(polygons) - 1:
+			f.write(',')
+
+	f.write(')')
+
+	buf = f.getvalue()
+	f.close()
+
+	return buf
 
 def extract(data, start, end):
 	if not data.startswith(start):
@@ -55,7 +119,7 @@ def parse_wkt(data):
 	else:
 		raise HXLException('Unknown WKT type %s' % (repr(data.split(' ', 1)[0])))
 
-__all__ = ['parse_wkt']
+__all__ = ['parse_wkt', 'encode_polygons']
 
 def assert_coord_eq(l, r):
 	(lx, ly) = l
