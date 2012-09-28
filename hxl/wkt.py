@@ -26,10 +26,10 @@ def extract(data, start, end):
 def parse_coord(data):
 	coord = data.split(' ')
 
-	if len(coord) == 2:
+	try:
 		(x, y) = coord
 		return (float(x), float(y))
-	else:
+	except:
 		raise HXLException('Malformed co-ordinate %s' % (repr(coord),))
 
 def parse_coords(data):
