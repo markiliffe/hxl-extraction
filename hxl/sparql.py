@@ -93,7 +93,7 @@ def query_country_apls(query_pcode):
 	return apls
 
 def query_all_apls():
-	apls = do_sparql_query('''
+	apl_results = do_sparql_query('''
 	SELECT DISTINCT ?pcode ?featureName ?data WHERE {
 	  ?p rdf:type hxl:APL ;
 		hxl:pcode ?pcode ;
