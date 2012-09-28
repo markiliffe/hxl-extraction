@@ -144,7 +144,6 @@ class WFS(object):
 		if need_auth:
 			headers['Authorization'] = self.auth
 
-		print (self.path + '/' + url, body, headers)
 		conn.request(method, self.path + '/' + url, body, headers)
 		return conn.getresponse()
 
