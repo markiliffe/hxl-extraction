@@ -86,7 +86,6 @@ def wkt_point_test():
 	assert len(points) == 1
 
 	assert type(points[0]) is Point
-	print points[0].coord
 	assert_coord_eq(points[0].coord, (11.11, 22.22))
 
 def wkt_polygon_test():
@@ -124,5 +123,4 @@ def wkt_multi_polygon_test():
 	assert_coord_eq(polygon2.coords[1], (77.77, 88.88))
 	assert_coord_eq(polygon2.coords[2], (11.11, 22.22))
 	assert_coord_eq(polygon2.coords[0], (55.55, 66.66))
-
 
